@@ -486,8 +486,8 @@ CFG_TA_MBEDTLS_SELF_TEST ?= y
 # It's also possible to configure to use mbedtls instead of tomcrypt.
 # Then the variables should be assigned as "CFG_CRYPTOLIB_NAME=mbedtls" and
 # "CFG_CRYPTOLIB_DIR=lib/libmbedtls" respectively.
-CFG_CRYPTOLIB_NAME ?= tomcrypt
-CFG_CRYPTOLIB_DIR ?= core/lib/libtomcrypt
+CFG_CRYPTOLIB_NAME ?= mbedtls
+CFG_CRYPTOLIB_DIR ?= lib/libmbedtls
 
 # Enable TEE_ALG_RSASSA_PKCS1_V1_5 algorithm for signing with PKCS#1 v1.5 EMSA
 # without ASN.1 around the hash.
