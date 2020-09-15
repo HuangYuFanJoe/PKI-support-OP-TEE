@@ -98,3 +98,8 @@ cflags-lib-y += -Wno-switch-default
 ifeq ($(CFG_CRYPTOLIB_NAME_mbedtls),y)
 subdirs-$(sm-core) += core
 endif
+
+# yufan add begin
+srcs-y += $(addprefix mbedtls/library/, $(SRCS_X509))
+srcs-y += $(addprefix mbedtls/library/, $(SRCS_TLS))
+# add end

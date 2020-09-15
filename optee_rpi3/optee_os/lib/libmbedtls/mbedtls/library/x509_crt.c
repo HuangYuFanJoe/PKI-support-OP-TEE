@@ -98,8 +98,9 @@ const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_default =
 {
 #if defined(MBEDTLS_TLS_DEFAULT_ALLOW_SHA1_IN_CERTIFICATES)
     /* Allow SHA-1 (weak, but still safe in controlled environments) */
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
+    //MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) | // yufan mark
 #endif
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) | // yufan add
     /* Only SHA-2 hashes */
     MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
     MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |

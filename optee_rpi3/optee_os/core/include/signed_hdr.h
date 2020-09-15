@@ -36,6 +36,7 @@ struct shdr {
 	uint32_t algo;
 	uint16_t hash_size;
 	uint16_t sig_size;
+	uint32_t cert_size; // yufan add
 	/*
 	 * Commented out element used to visualize the layout dynamic part
 	 * of the struct.
@@ -52,6 +53,7 @@ struct shdr {
 				 (x)->sig_size)
 #define SHDR_GET_HASH(x)	(uint8_t *)(((struct shdr *)(x)) + 1)
 #define SHDR_GET_SIG(x)		(SHDR_GET_HASH(x) + (x)->hash_size)
+#define SHDR_GET_CERT(x)	(SHDR_GET_SIG(x) + (x)->sig_size) // yufan add
 
 /**
  * struct shdr_bootstrap_ta - bootstrap TA subheader

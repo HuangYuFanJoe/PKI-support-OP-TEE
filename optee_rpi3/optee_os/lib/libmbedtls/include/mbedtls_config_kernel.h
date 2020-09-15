@@ -1,5 +1,25 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /* Copyright (c) 2018, Linaro Limited */
+
+// yufan add begin
+#define MBEDTLS_PK_C
+#define MBEDTLS_PK_PARSE_C
+#define MBEDTLS_PK_WRITE_C
+#define MBEDTLS_OID_C
+#define MBEDTLS_ASN1_PARSE_C
+#define MBEDTLS_ASN1_WRITE_C
+#define MBEDTLS_X509_CRT_PARSE_C
+#define MBEDTLS_X509_CSR_PARSE_C
+#define MBEDTLS_X509_CRT_WRITE_C
+#define MBEDTLS_X509_CREATE_C
+#define MBEDTLS_X509_CHECK_KEY_USAGE
+#define MBEDTLS_X509_USE_C
+#define MBEDTLS_BASE64_C
+#define MBEDTLS_CERTS_C
+#define MBEDTLS_PEM_PARSE_C
+#define MBEDTLS_PEM_WRITE_C
+// add end
+
 #ifndef __MBEDTLS_CONFIG_KERNEL_H
 #define __MBEDTLS_CONFIG_KERNEL_H
 

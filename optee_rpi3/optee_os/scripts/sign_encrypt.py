@@ -163,8 +163,15 @@ def main():
         img_type = 1         # SHDR_BOOTSTRAP_TA
     algo = 0x70414930    # TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256
 
+# yufan add begin
+    f = open("/home/optee_os/keys/my.crt",'rb')
+    cert = f.read()
+    f.close() 
+    cert_len = len(cert)
+# add end
+
     shdr = struct.pack('<IIIIHH',
-                       magic, img_type, img_size, algo, digest_len, sig_len)
+                       magic, img_type, img_size, algo, digest_len, sig_len, cert_len) # yufan modify
     shdr_uuid = args.uuid.bytes
     shdr_version = struct.pack('<I', hdr_version)
 
@@ -185,6 +192,7 @@ def main():
         h.update(ehdr)
         h.update(cipher.nonce)
         h.update(tag)
+    h.update(cert) # yufan add
     h.update(img)
     img_digest = h.digest()
 
@@ -195,6 +203,7 @@ def main():
             f.write(sig)
             f.write(shdr_uuid)
             f.write(shdr_version)
+            f.write(cert) # yufan add
             if args.enc_key:
                 f.write(ehdr)
                 f.write(cipher.nonce)
