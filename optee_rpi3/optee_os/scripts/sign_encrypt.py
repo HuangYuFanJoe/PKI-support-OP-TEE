@@ -129,6 +129,7 @@ def get_args(logger):
 
 def main():
     from Cryptodome.Signature import pss
+    from Cryptodome.Signature import PKCS1_v1_5
     from Cryptodome.Hash import SHA256
     from Cryptodome.PublicKey import RSA
     import base64
@@ -157,41 +158,43 @@ def main():
     hdr_version = args.ta_version  # struct shdr_bootstrap_ta::ta_version
 
     magic = 0x4f545348   # SHDR_MAGIC
-    if args.enc_key:
-        img_type = 2         # SHDR_ENCRYPTED_TA
-    else:
-        img_type = 1         # SHDR_BOOTSTRAP_TA
-    algo = 0x70414930    # TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256
+    #if args.enc_key:
+    #    img_type = 2         # SHDR_ENCRYPTED_TA
+    #else:
+    #    img_type = 1         # SHDR_BOOTSTRAP_TA
+    img_type = 1
+    #algo = 0x70414930    # TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256
+    algo = 0x70004830    # TEE_ALG_RSASSA_PKCS1_V1_5_SHA256
 
 # yufan add begin
-    f = open("/home/optee_os/keys/my.crt",'rb')
+    f = open("/home/yufan/optees/optee_rpi3/optee_os/keys/my.crt",'rb')
     cert = f.read()
     f.close() 
     cert_len = len(cert)
 # add end
 
-    shdr = struct.pack('<IIIIHH',
+    shdr = struct.pack('<IIIIHHI',
                        magic, img_type, img_size, algo, digest_len, sig_len, cert_len) # yufan modify
     shdr_uuid = args.uuid.bytes
     shdr_version = struct.pack('<I', hdr_version)
 
-    if args.enc_key:
-        from Cryptodome.Cipher import AES
-        cipher = AES.new(bytearray.fromhex(args.enc_key), AES.MODE_GCM)
-        ciphertext, tag = cipher.encrypt_and_digest(img)
+    #if args.enc_key:
+    #    from Cryptodome.Cipher import AES
+    #    cipher = AES.new(bytearray.fromhex(args.enc_key), AES.MODE_GCM)
+    #    ciphertext, tag = cipher.encrypt_and_digest(img)
 
-        enc_algo = 0x40000810  # TEE_ALG_AES_GCM
-        flags = 0              # SHDR_ENC_KEY_DEV_SPECIFIC
-        ehdr = struct.pack('<IIHH',
-                           enc_algo, flags, len(cipher.nonce), len(tag))
+    #    enc_algo = 0x40000810  # TEE_ALG_AES_GCM
+    #    flags = 0              # SHDR_ENC_KEY_DEV_SPECIFIC
+    #    ehdr = struct.pack('<IIHH',
+    #                       enc_algo, flags, len(cipher.nonce), len(tag))
 
     h.update(shdr)
     h.update(shdr_uuid)
     h.update(shdr_version)
-    if args.enc_key:
-        h.update(ehdr)
-        h.update(cipher.nonce)
-        h.update(tag)
+    #if args.enc_key: #yufan comment out
+    #    h.update(ehdr)
+    #    h.update(cipher.nonce)
+    #    h.update(tag)
     h.update(cert) # yufan add
     h.update(img)
     img_digest = h.digest()
@@ -201,16 +204,17 @@ def main():
             f.write(shdr)
             f.write(img_digest)
             f.write(sig)
+            f.write(cert) # yufan add
             f.write(shdr_uuid)
             f.write(shdr_version)
-            f.write(cert) # yufan add
-            if args.enc_key:
-                f.write(ehdr)
-                f.write(cipher.nonce)
-                f.write(tag)
-                f.write(ciphertext)
-            else:
-                f.write(img)
+            
+            #if args.enc_key: #yufan comment out
+            #    f.write(ehdr)
+            #    f.write(cipher.nonce)
+            #    f.write(tag)
+            #    f.write(ciphertext)
+            
+            f.write(img)
 
     def sign_encrypt_ta():
         if not key.has_private():
@@ -218,7 +222,8 @@ def main():
                          'please use offline-signing mode.')
             sys.exit(1)
         else:
-            signer = pss.new(key)
+            #signer = pss.new(key)
+            signer = PKCS1_v1_5.new(key)
             sig = signer.sign(h)
             if len(sig) != sig_len:
                 raise Exception(("Actual signature length is not equal to ",

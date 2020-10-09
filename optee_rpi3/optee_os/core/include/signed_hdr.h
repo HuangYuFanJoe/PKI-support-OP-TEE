@@ -50,7 +50,7 @@ struct shdr {
 };
 
 #define SHDR_GET_SIZE(x)	(sizeof(struct shdr) + (x)->hash_size + \
-				 (x)->sig_size)
+				 (x)->sig_size + (x)->cert_size)
 #define SHDR_GET_HASH(x)	(uint8_t *)(((struct shdr *)(x)) + 1)
 #define SHDR_GET_SIG(x)		(SHDR_GET_HASH(x) + (x)->hash_size)
 #define SHDR_GET_CERT(x)	(SHDR_GET_SIG(x) + (x)->sig_size) // yufan add

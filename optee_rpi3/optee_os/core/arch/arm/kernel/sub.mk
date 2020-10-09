@@ -3,12 +3,16 @@ srcs-y += user_ta.c
 srcs-$(CFG_REE_FS_TA) += ree_fs_ta.c
 srcs-$(CFG_EARLY_TA) += early_ta.c
 srcs-$(CFG_SECSTOR_TA) += secstor_ta.c
+#yufan
+srcs-y += x509/ca_crt.c
+srcs-y += x509/mid_crt.c
+srcs-y += x509/mid_key.c
+srcs-y += x509/ca_chain.c
 endif
 srcs-y += pseudo_ta.c
 srcs-y += tee_time.c
 srcs-y += otp_stubs.c
 srcs-y += delay.c
-srcs-y += ca_chain.c #yufan add
 
 srcs-$(CFG_SECURE_TIME_SOURCE_CNTPCT) += tee_time_arm_cntpct.c
 srcs-$(CFG_SECURE_TIME_SOURCE_REE) += tee_time_ree.c

@@ -95,10 +95,84 @@ struct ta_ver_db_hdr {
 static const char ta_ver_db_obj_id[] = "ta_ver.db";
 static struct mutex ta_ver_db_mutex = MUTEX_INITIALIZER;
 
+
+static TEE_Result verify_cert(const struct shdr *shdr)
+{
+
+	TEE_Result res = TEE_SUCCESS;
+	unsigned char hash[32]={0};
+	int ret = 0;
+	uint32_t flags = 0;    
+	mbedtls_x509_crt crt = { };
+	mbedtls_x509_crt trust_crt = { };
+	mbedtls_x509_crt_init(&crt);
+	mbedtls_x509_crt_init(&trust_crt);
+    
+	const uint8_t *ta_cert=SHDR_GET_CERT(shdr);  
+
+	//must +1 in certificate size to prevent format parsing error.
+	ret = mbedtls_x509_crt_parse(&crt, ca_chain,
+	                                    ca_chain_size+1);
+	   if (ret) {
+		      EMSG("ca error %d %x \n",ret,ret);
+	             EMSG("ca mbedtls_x509_crt_parse: failed: %#x", ret);
+	             return TEE_ERROR_BAD_FORMAT;
+	   }else{
+		        EMSG("ca cert ok \n");
+	}
+	uint8_t *buff=NULL;
+	buff=malloc((shdr->cert_size)+1);
+	memset(buff,'\0',(shdr->cert_size)+1);
+	memcpy(buff,ta_cert,shdr->cert_size);
+	   ret = mbedtls_x509_crt_parse(&trust_crt,buff,(shdr->cert_size)+1);
+	if (ret) {
+	          EMSG("ca2 mbedtls_x509_crt_parse: failed: %#x", ret);
+	          res = TEE_ERROR_BAD_FORMAT;
+	          goto out;
+	   }else{
+		EMSG("ca2  cert ok \n");
+	}
+	
+	ret = mbedtls_x509_crt_verify(&trust_crt,&crt, NULL, NULL, &flags,NULL, NULL);
+	   if (ret) {
+		      char vrfy_buf[512];
+	             EMSG("verify mbedtls_x509_crt_verify: failed: %#x", ret);
+	       	  mbedtls_x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ), "  ! ", flags );
+		      EMSG("error message----> %s\n",vrfy_buf);
+	             res = TEE_ERROR_BAD_FORMAT;
+	   }else{
+		EMSG("compare ca and ca2 cert ok \n");
+	}
+		//DMSG("pk size=%d",sizeof(trust_crt.pk));
+	if(!mbedtls_pk_can_do(&trust_crt.pk, MBEDTLS_PK_RSA )){
+		DMSG("public key check error\n");
+		goto out;
+	   }else{
+		DMSG("public key check ok\n");
+	}
+
+
+//Verify Signature 
+if( ( ret = mbedtls_pk_verify(&trust_crt.pk,MBEDTLS_MD_SHA256,SHDR_GET_HASH(shdr),0,SHDR_GET_SIG(shdr),
+		   shdr->sig_size ) ) != 0 ){
+	DMSG("signature check error = > %d %x %x\n",ret,-ret,ret);
+	res = TEE_ERROR_BAD_FORMAT;
+	goto out;
+   }else{
+	DMSG("signature check ok\n");
+}
+out:
+        mbedtls_x509_crt_free(&trust_crt);
+        mbedtls_x509_crt_free(&crt);
+        return res;
+
+}
+
 /*
  * Load a TA via RPC with UUID defined by input param @uuid. The virtual
  * address of the raw TA binary is received in out parameter @ta.
  */
+
 static TEE_Result rpc_load(const TEE_UUID *uuid, struct shdr **ta,
 			   size_t *ta_size, struct mobj **mobj)
 {
@@ -175,7 +249,10 @@ static TEE_Result ree_fs_ta_open(const TEE_UUID *uuid,
 		goto error_free_payload;
 	}
 
-	verify_cert(shdr); // yufan add
+	/* Validate certificate */
+	res = verify_cert(shdr);
+	if (res != TEE_SUCCESS)
+		goto error_free_payload;
 
 	/* Validate header signature */
 	res = shdr_verify_signature(shdr);
@@ -278,7 +355,7 @@ static TEE_Result ree_fs_ta_open(const TEE_UUID *uuid,
 	}
 
 	handle->nw_ta = ta;
-	handle->nw_ta_size = ta_size + shdr->cert_size;
+	handle->nw_ta_size = ta_size + shdr->cert_size; //yufan modify
 	handle->offs = offs;
 	handle->hash_ctx = hash_ctx;
 	handle->shdr = shdr;
@@ -431,76 +508,6 @@ out:
 	ops->close(&fh);
 	mutex_unlock(&ta_ver_db_mutex);
 	return res;
-}
-
-static TEE_Result verify_cert(const struct shdr *shdr)
-{
-
-	TEE_Result res = TEE_SUCCESS;
-	unsigned char hash[32]={0};
-	int ret = 0;
-	uint32_t flags = 0;    
-	mbedtls_x509_crt crt = { };
-	mbedtls_x509_crt trust_crt = { };
-	mbedtls_x509_crt_init(&crt);
-	mbedtls_x509_crt_init(&trust_crt);
-    
-	const uint8_t *ta_cert=SHDR_GET_CERT(shdr);  
-
-	//must +1 in certificate size to prevent format parsing error.
-	ret = mbedtls_x509_crt_parse(&crt, ca_chain,
-	                                    ca_chain_size+1);
-	   if (ret) {
-		      EMSG("ca error %d %x \n",ret,ret);
-	             EMSG("ca mbedtls_x509_crt_parse: failed: %#x", ret);
-	             return TEE_ERROR_BAD_FORMAT;
-	   }else{
-		        EMSG("ca cert ok \n");
-	}
-	uint8_t *buff=NULL;
-	buff=malloc((shdr->cert_size)+1);
-	memset(buff,'\0',(shdr->cert_size)+1);
-	memcpy(buff,ta_cert,shdr->cert_size);
-	   ret = mbedtls_x509_crt_parse(&trust_crt,buff,(shdr->cert_size)+1);
-	if (ret) {
-	          EMSG("ca2 mbedtls_x509_crt_parse: failed: %#x", ret);
-	          res = TEE_ERROR_BAD_FORMAT;
-	          goto out;
-	   }else{
-		EMSG("ca2  cert ok \n");
-	}
-	
-	ret = mbedtls_x509_crt_verify(&trust_crt,&crt, NULL, NULL, &flags,NULL, NULL);
-	   if (ret) {
-		      char vrfy_buf[512];
-	             EMSG("verify mbedtls_x509_crt_verify: failed: %#x", ret);
-	       	  mbedtls_x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ), "  ! ", flags );
-		      EMSG("error message----> %s\n",vrfy_buf);
-	             res = TEE_ERROR_BAD_FORMAT;
-	   }else{
-		EMSG("compare ca and ca2 cert ok \n");
-	}
-		//DMSG("pk size=%d",sizeof(trust_crt.pk));
-	if(!mbedtls_pk_can_do(&trust_crt.pk, MBEDTLS_PK_RSA )){
-		DMSG("public key check error\n");
-		goto out;
-	   }else{
-		DMSG("public key check ok\n");
-	}
-	
-//Verify Signature 
-if( ( ret = mbedtls_pk_verify(&trust_crt.pk,MBEDTLS_MD_SHA256,SHDR_GET_HASH(shdr),0,SHDR_GET_SIG(shdr),
-		   shdr->sig_size ) ) != 0 ){
-	DMSG("sigature check error = > %d %x %x\n",ret,-ret,ret);
-	goto out;
-   }else{
-	DMSG("sigatrue check ok\n");
-}
-out:
-        mbedtls_x509_crt_free(&trust_crt);
-        mbedtls_x509_crt_free(&crt);
-        return res;
-
 }
 
 static TEE_Result ree_fs_ta_read(struct user_ta_store_handle *h, void *data,
