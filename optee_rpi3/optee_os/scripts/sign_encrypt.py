@@ -158,10 +158,10 @@ def main():
     hdr_version = args.ta_version  # struct shdr_bootstrap_ta::ta_version
 
     magic = 0x4f545348   # SHDR_MAGIC
-    #if args.enc_key:
-    #    img_type = 2         # SHDR_ENCRYPTED_TA
-    #else:
-    #    img_type = 1         # SHDR_BOOTSTRAP_TA
+    if args.enc_key:
+        img_type = 2         # SHDR_ENCRYPTED_TA
+    else:
+        img_type = 1         # SHDR_BOOTSTRAP_TA
     img_type = 1
     #algo = 0x70414930    # TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256
     algo = 0x70004830    # TEE_ALG_RSASSA_PKCS1_V1_5_SHA256
@@ -178,23 +178,23 @@ def main():
     shdr_uuid = args.uuid.bytes
     shdr_version = struct.pack('<I', hdr_version)
 
-    #if args.enc_key:
-    #    from Cryptodome.Cipher import AES
-    #    cipher = AES.new(bytearray.fromhex(args.enc_key), AES.MODE_GCM)
-    #    ciphertext, tag = cipher.encrypt_and_digest(img)
+    if args.enc_key:
+        from Cryptodome.Cipher import AES
+        cipher = AES.new(bytearray.fromhex(args.enc_key), AES.MODE_GCM)
+        ciphertext, tag = cipher.encrypt_and_digest(img)
 
-    #    enc_algo = 0x40000810  # TEE_ALG_AES_GCM
-    #    flags = 0              # SHDR_ENC_KEY_DEV_SPECIFIC
-    #    ehdr = struct.pack('<IIHH',
-    #                       enc_algo, flags, len(cipher.nonce), len(tag))
+        enc_algo = 0x40000810  # TEE_ALG_AES_GCM
+        flags = 0              # SHDR_ENC_KEY_DEV_SPECIFIC
+        ehdr = struct.pack('<IIHH',
+                           enc_algo, flags, len(cipher.nonce), len(tag))
 
     h.update(shdr)
     h.update(shdr_uuid)
     h.update(shdr_version)
-    #if args.enc_key: #yufan comment out
-    #    h.update(ehdr)
-    #    h.update(cipher.nonce)
-    #    h.update(tag)
+    if args.enc_key:
+        h.update(ehdr)
+        h.update(cipher.nonce)
+        h.update(tag)
     h.update(cert) # yufan add
     h.update(img)
     img_digest = h.digest()
@@ -208,11 +208,11 @@ def main():
             f.write(shdr_uuid)
             f.write(shdr_version)
             
-            #if args.enc_key: #yufan comment out
-            #    f.write(ehdr)
-            #    f.write(cipher.nonce)
-            #    f.write(tag)
-            #    f.write(ciphertext)
+            if args.enc_key: #yufan comment out
+                f.write(ehdr)
+                f.write(cipher.nonce)
+                f.write(tag)
+                f.write(ciphertext)
             
             f.write(img)
 
